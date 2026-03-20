@@ -1,0 +1,518 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>La Casa – Sobrevive hasta las 6 AM</title>
+<style>
+body{
+  margin:0;
+  background:black;
+  color:white;
+  font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow:hidden;
+}
+
+/* --- Canvas y UI --- */
+canvas{display:block;margin:auto;background:#000;display:none;}
+#ui{position:fixed;top:10px;left:0;right:0;text-align:center;font-size:18px;z-index:2;display:none;}
+
+/* --- MENÚ PRO --- */
+#menu{
+  position:fixed;
+  inset:0;
+  display:grid;
+  place-items:center;
+  background:
+    radial-gradient(1200px 500px at 50% 0%, rgba(164,26,26,0.25), transparent 60%),
+    linear-gradient(180deg,#080808 0%, #131313 55%, #060606 100%);
+  overflow:hidden;
+  z-index:10;
+}
+
+#menu::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.06) 0px,
+    rgba(255,255,255,0.06) 1px,
+    rgba(0,0,0,0) 2px,
+    rgba(0,0,0,0) 4px
+  );
+  opacity:.14;
+  animation:scanShift 5s linear infinite;
+  pointer-events:none;
+}
+@keyframes scanShift{
+ 0%{transform:translateY(0)}
+ 100%{transform:translateY(8px)}
+}
+
+#menu::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255,220,110,0.15), transparent 18%),
+    radial-gradient(circle at 84% 17%, rgba(255,90,90,0.12), transparent 16%),
+    radial-gradient(circle at 50% 85%, rgba(70,120,255,0.09), transparent 20%);
+  pointer-events:none;
+}
+
+.menu-shell{
+  position:relative;
+  width:min(90vw, 760px);
+  padding:32px 24px 26px;
+  border-radius:14px;
+  border:1px solid #3a3a3a;
+  background:linear-gradient(180deg, rgba(20,20,20,0.9), rgba(6,6,6,0.95));
+  box-shadow:0 20px 80px rgba(0,0,0,0.75), inset 0 0 50px rgba(255,160,70,0.05);
+}
+
+.menu-header{text-align:center;margin-bottom:18px}
+.menu-title{
+  margin:0;
+  font-size:54px;
+  line-height:1;
+  letter-spacing:4px;
+  color:#ffd37a;
+  text-shadow:0 0 20px rgba(255,211,122,0.75), 0 0 70px rgba(255,92,32,0.4);
+  animation:flickerTitle 3s infinite;
+}
+@keyframes flickerTitle{
+  0%, 19%, 21%, 23%, 80%, 100%{opacity:1}
+  20%, 22%{opacity:.7}
+  81%{opacity:.82}
+}
+.menu-sub{margin:8px 0 0;font-size:14px;letter-spacing:2px;color:#c9c9c9;text-transform:uppercase}
+
+.menu-marquee{
+  margin:14px auto 22px;
+  width:min(88%,540px);
+  border:1px solid #393939;
+  padding:8px 12px;
+  border-radius:10px;
+  font-size:13px;
+  color:#dedede;
+  background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  overflow:hidden;
+  white-space:nowrap;
+}
+.marquee-text{display:inline-block;padding-left:100%;animation:marquee 12s linear infinite}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-120%)}}
+
+.menu-buttons{display:grid;gap:12px;justify-items:center}
+
+/* OJOS ANIMADOS */
+.eye{
+  position:absolute;
+  width:12px; height:12px;
+  border-radius:50%;
+  background:white;
+  box-shadow:0 0 8px #ff3333;
+  animation:blink 1.6s infinite alternate;
+  z-index:0;
+}
+@keyframes blink{
+ 0%{opacity:1;}
+ 50%{opacity:0.15;}
+ 100%{opacity:1;}
+}
+
+/* BOTONES NEÓN */
+.menu-btn{
+  position:relative;
+  background:linear-gradient(180deg,#3f3f3f,#1a1a1a);
+  border:1px solid #666;
+  color:#f6f6f6;
+  padding:14px 24px;
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  border-radius:12px;
+  cursor:pointer;
+  width:min(100%, 320px);
+  text-shadow:0 0 8px rgba(0,0,0,0.7);
+  box-shadow:0 6px 18px rgba(0,0,0,0.45), inset 0 0 20px rgba(255,210,120,0.08);
+  transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  z-index:1;
+}
+.menu-btn:hover{
+  transform:translateY(-2px);
+  border-color:#ffd37a;
+  box-shadow:0 10px 28px rgba(0,0,0,0.55), inset 0 0 26px rgba(255,210,120,0.22);
+}
+
+.menu-note{
+  margin-top:16px;
+  text-align:center;
+  color:#8f8f8f;
+  font-size:12px;
+  letter-spacing:1px;
+}
+
+@media (max-width:720px){
+  .menu-shell{width:min(94vw,640px);padding:24px 16px}
+  .menu-title{font-size:38px;letter-spacing:2px}
+  .menu-sub{font-size:12px}
+  .menu-btn{font-size:18px;padding:12px 16px}
+}
+
+/* --- GAME OVER y demás estilos previos --- */
+#overlay{
+ position:fixed;inset:0;display:none;z-index:5;color:white;
+ background:radial-gradient(ellipse at center,#000 0%,#000 40%,#000 100%);
+}
+#jumpscare{
+ position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+ font-size:120px;color:#ff2a2a;opacity:0;animation:js 0.5s ease-out forwards;
+}
+@keyframes js{0%{opacity:0;transform:scale(0.2)}60%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+
+#panel{
+ position:absolute;inset:0;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:14px;opacity:0;
+ animation:fadeIn 1.2s ease 0.6s forwards;
+}
+@keyframes fadeIn{to{opacity:1}}
+
+.glitch{
+ font-size:72px;font-weight:bold;letter-spacing:2px;position:relative;
+ animation:shake 0.12s infinite;
+}
+@keyframes shake{
+ 0%{transform:translate(0,0)}25%{transform:translate(2px,-1px)}
+ 50%{transform:translate(-2px,1px)}75%{transform:translate(1px,2px)}
+}
+
+.scanlines{
+ pointer-events:none;position:absolute;inset:0;opacity:.15;
+ background:repeating-linear-gradient(
+  to bottom, rgba(255,255,255,.08) 0px,
+  rgba(255,255,255,.08) 1px,
+  rgba(0,0,0,0) 2px,
+  rgba(0,0,0,0) 4px
+ );
+}
+
+.stats{font-size:18px;opacity:.9}
+.buttons{display:flex;gap:12px;margin-top:10px}
+.btn{
+ background:#111;border:1px solid #444;color:white;
+ padding:10px 16px;font-size:16px;cursor:pointer
+}
+.btn:hover{background:#222}
+/* --- PANTALLA DE GANAR --- */
+#winScreen{
+ position:fixed;inset:0;display:none;z-index:12;align-items:center;justify-content:center;
+ background:linear-gradient(180deg,#040008 0%, rgba(0,0,0,0.85) 60%);
+ color:#fff;overflow:hidden;
+}
+.win-card{display:flex;flex-direction:column;align-items:center;gap:12px;padding:28px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));box-shadow:0 10px 40px rgba(0,0,0,0.7);backdrop-filter:blur(4px);}
+.win-title{font-size:72px;font-weight:900;color:#ffdd55;text-shadow:0 0 20px #ffdd55,0 0 60px #ff6a00;letter-spacing:2px;animation:glow 1.6s infinite alternate}
+@keyframes glow{from{text-shadow:0 0 20px #ffdd55;}to{text-shadow:0 0 40px #ff6a00;transform:translateY(-4px)} }
+.win-sub{font-size:20px;opacity:.95}
+.animatron{width:260px;height:120px;border-radius:10px;background:linear-gradient(90deg,#111,#222);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;box-shadow:inset 0 0 40px rgba(255,100,0,0.03)}
+.anim-eyes{position:absolute;top:18px;display:flex;gap:30px}
+.anim-eye{width:48px;height:48px;border-radius:50%;background:#fff;box-shadow:0 0 24px rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center}
+.iris{width:20px;height:20px;border-radius:50%;background:#111}
+.sparkle{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 20% 10%, rgba(255,255,255,0.06), transparent 5%),radial-gradient(circle at 80% 90%, rgba(255,200,0,0.03), transparent 6%);mix-blend-mode:screen}
+.win-stats{font-size:16px;opacity:.95}
+.win-actions{display:flex;gap:10px;margin-top:8px}
+.win-btn{background:linear-gradient(90deg,#00ffcc,#00aaff);border:none;padding:10px 16px;border-radius:10px;color:#012;cursor:pointer;font-weight:700}
+.win-btn.alt{background:#111;color:#fff;border:1px solid #333}
+
+</style>
+</head>
+<body>
+
+<!-- MENÚ -->
+<div id="menu">
+ <div class="menu-shell">
+  <div class="menu-header">
+   <h1 class="menu-title">LA CASA</h1>
+   <p class="menu-sub">Noche 1 · Sobrevive hasta las 6:00 AM</p>
+  </div>
+  <div class="menu-marquee"><span class="marquee-text">Sistema de vigilancia inestable · Se detectan movimientos en los pasillos · Mantente en silencio...</span></div>
+  <div class="menu-buttons">
+   <button class="menu-btn" onclick="startGame()">INICIAR TURNO</button>
+   <button class="menu-btn" onclick="alert('Opciones de volumen próximamente')">AUDIO</button>
+   <button class="menu-btn" onclick="window.close()">SALIR</button>
+  </div>
+  <div class="menu-note">Controles en partida: W A S D · F linterna · V congelar · Z curar</div>
+ </div>
+</div>
+
+<!-- OJOS EN EL FONDO -->
+<div class="eye" style="top:80px; left:200px;"></div>
+<div class="eye" style="top:150px; left:800px;"></div>
+<div class="eye" style="top:400px; left:500px;"></div>
+<div class="eye" style="top:300px; left:300px;"></div>
+<div class="eye" style="top:500px; left:900px;"></div>
+
+<!-- UI -->
+<div id="ui">
+⏰ Hora: <span id="time">12:00 AM</span> |
+🔦 F Linterna |
+🧊 V Congelar |
+💖 Z Curar |
+❤️ Vida: <span id="hp">100</span>
+</div>
+
+<canvas id="game" width="1000" height="650"></canvas>
+
+<!-- GAME OVER -->
+<div id="overlay">
+ <div id="jumpscare">👁️</div>
+ <div class="scanlines"></div>
+ <div id="panel">
+  <div id="goTitle" class="glitch">GAME OVER</div>
+  <div id="goText" class="stats"></div>
+  <div id="goStats" class="stats"></div>
+  <div class="buttons">
+    <button class="btn" onclick="location.reload()">🔄 Reintentar</button>
+    <button class="btn" onclick="document.getElementById('menu').style.display='flex'; overlay.style.display='none';">🏠 Menú</button>
+    <button class="btn" onclick="window.close()">❌ Salir</button>
+  </div>
+</div>
+
+<!-- PANTALLA DE GANAR -->
+<div id="winScreen">
+ <div class="win-card">
+  <div class="win-title">¡GANASTE!</div>
+  <div class="win-sub">Sos sobreviviente nocturno</div>
+  <div class="animatron">
+    <div class="anim-eyes">
+      <div class="anim-eye"><div class="iris" id="iris1"></div></div>
+      <div class="anim-eye"><div class="iris" id="iris2"></div></div>
+    </div>
+    <div class="sparkle"></div>
+  </div>
+  <div class="win-stats" id="winStats">Cargando estadísticas...</div>
+  <div class="win-actions">
+    <button class="win-btn" onclick="location.reload()">🔄 Reiniciar</button>
+    <button class="win-btn alt" onclick="toMenu()">🏠 Volver al menú</button>
+  </div>
+ </div>
+</div>
+
+<script>
+// ===== MENÚ =====
+function startGame(){
+  document.getElementById("menu").style.display = "none";
+  document.getElementById("game").style.display = "block";
+  document.getElementById("ui").style.display = "block";
+  requestAnimationFrame(loop);
+}
+
+// ===== TODO TU JUEGO ORIGINAL =====
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const timeUI=document.getElementById("time");
+const overlay=document.getElementById("overlay");
+const goText=document.getElementById("goText");
+const goStats=document.getElementById("goStats");
+const hpUI=document.getElementById("hp");
+
+// ===== PANTALLA DE GANAR: elementos y audio =====
+const winScreen=document.getElementById('winScreen');
+const winStats=document.getElementById('winStats');
+const iris1=document.getElementById('iris1');
+const iris2=document.getElementById('iris2');
+let winAudioCtx=null, winOscs=[];
+function playWinTune(){
+  try{
+    winAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const now = winAudioCtx.currentTime;
+    const seq=[440,660,880,660];
+    seq.forEach((f,i)=>{
+      const o = winAudioCtx.createOscillator();
+      const g = winAudioCtx.createGain();
+      o.type='sine'; o.frequency.value = f;
+      g.gain.value = 0.02;
+      o.connect(g); g.connect(winAudioCtx.destination);
+      o.start(now + i*0.16);
+      o.stop(now + i*0.16 + 0.15);
+      winOscs.push(o);
+    });
+  }catch(e){console.warn('Audio no disponible',e)}
+}
+function stopWinTune(){ if(winAudioCtx){ try{ winAudioCtx.close(); }catch(e){} winAudioCtx=null; winOscs=[] }}
+let irisInterval=null;
+function animateIris(){ if(irisInterval) clearInterval(irisInterval); irisInterval=setInterval(()=>{
+  const a=(Math.random()*12)-6; const b=(Math.random()*12)-6;
+  iris1.style.transform=`translate(${a}px,${b}px)`;
+  iris2.style.transform=`translate(${b*-1}px,${a}px)`;
+},420); }
+
+function showWin(){
+  document.getElementById('game').style.display='none';
+  document.getElementById('ui').style.display='none';
+  winScreen.style.display='flex';
+  const hourText=(hourIndex===0?12:hourIndex)+":00 AM";
+  const survivedSec=Math.floor((performance.now()-startTime)/1000);
+  winStats.textContent=`Hora: ${hourText} | Sobreviviste: ${survivedSec}s | Linterna: ${usedFlash} | Congelar: ${usedFreeze} | Curar: ${usedHeal}`;
+  playWinTune();
+  animateIris();
+}
+function toMenu(){ stopWinTune(); if(irisInterval) clearInterval(irisInterval); winScreen.style.display='none'; document.getElementById('menu').style.display='flex'; }
+
+const tile=40;
+const map=[
+"#########################",
+"#.....#.......#.......#",
+"#.....#.......#.......#",
+"#.....#####...#####....#",
+"#......................#",
+"#..########............#",
+"#..#......#...........#",
+"#..#......#...........#",
+"#..########.....#####.#",
+"#..............#.....#",
+"#.....#####....#.....#",
+"#.....#........#.....#",
+"#.....#........#.....#",
+"#########################"
+];
+
+let p={x:80,y:80,r:8,speed:2.6};
+let playerHP=100;
+const maxHP=100;
+let healCD=0;
+let invulnTime=0;
+
+let monsters=[
+ {id:0,x:860,y:120,r:12,speed:1.2,dx:1,dy:0,active:true,frozen:0,name:"La Sombra",msg:"Nunca debiste mirar atrás"},
+ {id:1,x:600,y:360,r:12,speed:1.3,dx:-1,dy:0,active:true,frozen:0,name:"El Vigilante",msg:"Te vio antes que tú a él"},
+ {id:2,x:120,y:520,r:12,speed:1.5,dx:0,dy:-1,active:false,frozen:0,name:"El Silencio",msg:"No estabas solo"}
+];
+
+let hourIndex=0;
+let startTime=performance.now();
+let lastTick=startTime;
+
+let freezeCD=0;
+let usedFlash=0, usedFreeze=0, usedHeal=0;
+
+let keys={},flashlight=false,gameOver=false,win=false;
+let flicker=false;
+
+document.addEventListener("keydown",e=>{
+ const k=e.key.toLowerCase();
+ keys[k]=true;
+ if(k==="f"){flashlight=!flashlight; usedFlash++}
+ if(k==="v" && freezeCD<=0){freezeNearestMonster(); usedFreeze++}
+ if(k==="z" && healCD<=0){healPlayer(); usedHeal++}
+});
+document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+
+function cell(x,y){const cx=Math.floor(x/tile), cy=Math.floor(y/tile); if(cy<0||cy>=map.length||cx<0||cx>=map[0].length) return "#"; return map[cy][cx];}
+function block(x,y){return cell(x,y)==="#";}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+
+// CONGELAR
+function freezeNearestMonster(){
+ let nearest=null,min=1e9;
+ monsters.forEach(m=>{if(!m.active) return; const d=dist(p,m); if(d<min){min=d; nearest=m;}});
+ if(nearest && min<200){nearest.frozen=15000; freezeCD=10000;}
+}
+
+// CURAR
+function healPlayer(){
+ playerHP += maxHP * 0.5;
+ if(playerHP>maxHP) playerHP=maxHP;
+ hpUI.textContent = playerHP;
+ healCD=60000;
+}
+
+// GAME OVER
+function doGameOver(killer){
+ gameOver=true;
+ overlay.style.display="block";
+ const hourText=(hourIndex===0?12:hourIndex)+":00 AM";
+ const survivedSec=Math.floor((performance.now()-startTime)/1000);
+ goText.textContent=`${killer.msg} — ${killer.name}`;
+ goStats.textContent=`Hora: ${hourText} | Sobreviviste: ${survivedSec}s | Linterna: ${usedFlash} | Congelar: ${usedFreeze} | Curar: ${usedHeal}`;
+}
+
+// LOOP
+function loop(now){
+ if(gameOver||win) return;
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ if(freezeCD>0) freezeCD-=16;
+ if(healCD>0) healCD-=16;
+ if(invulnTime>0) invulnTime-=16;
+
+ if(now-lastTick>=30000){ hourIndex++; lastTick=now;
+  const elapsedSec=(now-startTime)/1000;
+  const totalGameSec=180;
+  if(totalGameSec-elapsedSec<=10) monsters[2].active=true;
+  if(hourIndex>=6){win=true; setTimeout(()=>showWin(),200);} 
+ }
+ timeUI.textContent=(hourIndex===0?12:hourIndex)+":00 AM";
+
+ if((now-startTime)/1000>=165) flicker=Math.random()<0.3;
+
+ let nx=p.x, ny=p.y;
+ if(keys.w) ny-=p.speed;
+ if(keys.s) ny+=p.speed;
+ if(keys.a) nx-=p.speed;
+ if(keys.d) nx+=p.speed;
+ if(!block(nx,p.y)) p.x=nx;
+ if(!block(p.x,ny)) p.y=ny;
+
+ // MAPA
+ for(let y=0;y<map.length;y++){for(let x=0;x<map[y].length;x++){if(map[y][x]==="#"){ctx.fillStyle="#222";ctx.fillRect(x*tile,y*tile,tile,tile);}}}
+
+ let danger=false;
+ monsters.forEach(m=>{
+  if(!m.active) return;
+
+  if(m.frozen>0){ m.frozen-=16; } 
+  else{
+   let sp=m.speed+hourIndex*0.2;
+   if(dist(p,m)<200){ m.dx=Math.sign(p.x-m.x); m.dy=Math.sign(p.y-m.y); }
+   let mx=m.x+m.dx*sp, my=m.y+m.dy*sp;
+   if(block(mx,m.y)) m.dx*=-1; else m.x=mx;
+   if(block(m.x,my)) m.dy*=-1; else m.y=my;
+  }
+
+  const inLight=flashlight && dist(p,m)<160;
+  ctx.fillStyle=inLight?"red":"black";
+  ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,Math.PI*2); ctx.fill();
+
+  if(dist(p,m)<120) danger=true;
+
+  // VIDA 25 POR GOLPE, INVULN 2s
+  if(dist(p,m)<p.r+m.r && invulnTime<=0){
+      playerHP -= 25;
+      if(playerHP<0) playerHP=0;
+      hpUI.textContent = playerHP;
+      invulnTime=2000;
+      if(playerHP===0){doGameOver(m);}
+  }
+ });
+
+ ctx.fillStyle="white";
+ ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+
+ if(danger){
+  ctx.fillStyle="rgba(255,0,0,0.25)"; ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<6;i++){
+   const ex=Math.random()*canvas.width, ey=Math.random()*canvas.height;
+   ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(ex,ey,6,0,Math.PI*2); ctx.fill();
+   ctx.fillStyle="black"; ctx.beginPath(); ctx.arc(ex,ey,3,0,Math.PI*2); ctx.fill();
+  }
+ }
+
+ if(flashlight && !flicker){ctx.fillStyle="rgba(255,255,200,0.25)";ctx.beginPath();ctx.arc(p.x,p.y,160,0,Math.PI*2);ctx.fill();}
+ if(flicker){ctx.fillStyle="rgba(0,0,0,0.6)";ctx.fillRect(0,0,canvas.width,canvas.height);}
+
+ requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
